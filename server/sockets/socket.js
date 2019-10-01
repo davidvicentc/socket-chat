@@ -1,42 +1,25 @@
-const { io } = require('../server');
+const { io } = require("../server");
+const Message = require("../../models/Messages");
 
+io.on("connection", async client => {
+  console.log("Usuario conectado");
 
-io.on('connection', (client) => {
+  let msgs = await Message.find({}).sort({ date: "desc" });
+  client.emit("loadChat", msgs);
 
-    console.log('Usuario conectado');
+  client.on("disconnect", () => {
+    console.log("Usuario desconectado");
+  });
 
-    client.emit('enviarMensaje', {
-        usuario: 'Administrador',
-        mensaje: 'Bienvenido a esta aplicación'
+  // Escuchar el cliente
+
+  client.on("sendMessage", async msg => {
+    console.log(msg);
+    let message = new Message({
+      user: "david",
+      msg
     });
-
-
-
-    client.on('disconnect', () => {
-        console.log('Usuario desconectado');
-    });
-
-    // Escuchar el cliente
-    client.on('enviarMensaje', (data, callback) => {
-
-        console.log(data);
-
-        client.broadcast.emit('enviarMensaje', data);
-
-
-        // if (mensaje.usuario) {
-        //     callback({
-        //         resp: 'TODO SALIO BIEN!'
-        //     });
-
-        // } else {
-        //     callback({
-        //         resp: 'TODO SALIO MAL!!!!!!!!'
-        //     });
-        // }
-
-
-
-    });
-
+    await message.save();
+    io.sockets.emit("newMessage", message);
+  });
 });
